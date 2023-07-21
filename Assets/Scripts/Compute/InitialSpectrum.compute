@@ -1,0 +1,115 @@
+#pragma kernel GenerateInitialSpectrum
+#pragma kernel GenerateConjugateSpectrum
+
+Texture2D<float2> noise;
+
+RWTexture2D<float2> h0k;
+RWTexture2D<float2> h0kConj;
+
+int N;
+int L;
+float Ls;
+float V;
+float F;
+float D;
+float2 w;
+float wrMin;
+float wrMax;
+
+static const float PI = 3.141592653589793;
+static const float g = 9.81;
+
+float Jonswap(float omega, float omega_p, float V, float F) {
+
+    float sigma;
+    if ( omega <= omega_p ) {
+        sigma = 0.07;
+    }
+    else {
+        sigma = 0.09;
+    }
+        
+    float r = exp( -1.0 * ( ( omega - omega_p ) * ( omega - omega_p ) / ( 2.0 * sigma * sigma * omega_p * omega_p ) ) );
+    float alpha = 0.076 * pow( abs( g * F / ( V * V ) ) , -0.22 );
+    float gamma = 3.3;
+
+    return ( alpha * g * g ) * ( 1.0 / ( omega * omega * omega * omega * omega ) ) 
+           * exp( -1.25 * ( (omega_p/omega) * (omega_p/omega) * (omega_p/omega) * (omega_p/omega) ) ) 
+           * pow( abs(gamma), r );
+}
+
+float Kitaigorodskii(float omega_h) {
+
+    if ( omega_h <= 1 ) {
+        return 0.5 * omega_h * omega_h;
+    }
+    if ( omega_h < 2 ) {
+        return 1.0 - ( 0.5 * ( 2.0 - omega_h ) * ( 2.0 - omega_h ) );
+    }
+    return 1;
+}
+
+float Donelan(float omega, float omega_p, float theta_w, float theta_p) {
+
+    float beta_s;
+    float epsilon;
+
+    if ( (omega / omega_p) < 0.95 ) {
+        beta_s = 2.61 * pow( abs( omega / omega_p ), 1.3);
+    }
+    if ( (omega / omega_p) < 1.6 ) {
+        beta_s = 2.28 * pow( abs( omega / omega_p ), -1.3);
+    }
+    else {
+        epsilon = -0.4 + ( 0.8393 * exp( -0.567 * log( ( omega / omega_p ) * ( omega / omega_p ) ) ) );
+        beta_s = pow( 10, epsilon );
+    }
+
+    return 0.5 * beta_s * ( 1.0 / cosh( abs(theta_w - theta_p) ) ) * ( 1.0 / cosh(abs(theta_w - theta_p)) );
+}
+
+[numthreads(16,16,1)]
+void GenerateInitialSpectrum (uint3 id : SV_DispatchThreadID)
+{
+    float2 xi = noise.Load( uint3( id.xy, 0 ) ).rg;
+    float xz = ( 2.0 * PI ) / float(L);
+    float2 k = float2 (xz * ( id.x - float(N) / 2.0 ),
+                       xz * ( id.y - float(N) / 2.0 ) );
+
+    float km = length(k);
+    if (km < 0.00001)
+        km = 0.00001;
+
+    if ( km <= wrMax && km >= wrMin ) {
+        float theta_w = atan2( w.y , w.x );
+        float theta_p = atan2( k.y , k.x );
+        float theta = theta_p - theta_w;
+
+        float X = g * F / ( V * V );
+        float vp = 3.5 * pow(abs(X), -0.33);
+
+        float omega = sqrt( g * km * tanh( km * D ) );
+        float omega_h = omega * sqrt( D / g );
+        float omega_d = g * ( D * km / cosh( km * D ) / cosh( km * D ) + tanh( km * D ) ) / omega / 2.0;
+        float omega_p = 2.0 * PI * ( g * vp / ( V ) );
+
+        float spectrum = Jonswap( omega, omega_p, V, F ) 
+                         * Kitaigorodskii(omega_h)
+                         * Donelan( omega, omega_p, theta_w, theta_p)
+                         * exp( -1.0 * (km * km * Ls * Ls));
+
+        float2 H0 = float2( saturate( ( 1.0 / sqrt(2.0) ) * xi.rg * sqrt( 2.0 * spectrum * abs(omega_d) * (1.0 / km) * xz * xz ) ) );
+    
+        h0k[id.xy] = float2( H0.r, H0.g );
+    }
+    else
+        h0k[id.xy] = float2( 0, 0 );
+}
+
+[numthreads(16,16,1)]
+void GenerateConjugateSpectrum(uint3 id : SV_DispatchThreadID)
+{
+    uint2 coords = N - id.xy;
+	float2 h0Conj_ = h0k[ coords ];
+	h0kConj[id.xy] = float2( h0Conj_.x, -h0Conj_.y );
+}

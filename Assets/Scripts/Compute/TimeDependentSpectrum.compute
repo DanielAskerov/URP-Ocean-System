@@ -1,0 +1,113 @@
+#pragma kernel CalculateTimeDependentSpectrum
+
+RWTexture2D<float2> h0kt_x;
+RWTexture2D<float2> h0kt_y;
+RWTexture2D<float2> h0kt_z;
+
+RWTexture2D<float2> pdyx;
+RWTexture2D<float2> pdyz;
+RWTexture2D<float2> pdxx;
+RWTexture2D<float2> pdzz;
+RWTexture2D<float2> pdxz;
+
+Texture2D<float2> h0k;
+Texture2D<float2> h0kConj;
+
+int N;
+int L;
+float D;
+float t;
+
+static const float PI = 3.141592653589793;
+static const float g = 9.81;
+
+struct complex
+{
+	float real;
+	float imag;
+};
+
+complex Mult(complex c0, complex c1)
+{
+	complex c;
+	c.real = c0.real * c1.real - c0.imag * c1.imag;
+	c.imag = c0.real * c1.imag + c0.imag * c1.real;
+	return c;
+}
+
+complex Add(complex c0, complex c1)
+{
+	complex c;
+	c.real = c0.real + c1.real;
+	c.imag = c0.imag + c1.imag;
+	return c;
+}
+
+[numthreads(16,16,1)]
+void CalculateTimeDependentSpectrum(uint3 id : SV_DispatchThreadID)
+{	
+	float2 k = float2( 2.0 * PI * ( id.xy - float(N) / 2.0 ) / float(L) );
+
+	float km = length(k);
+	if (km < 0.00001)
+		km = 0.00001;
+
+	float omega = sqrt(g * km * tanh(km * D));
+	
+    float2 h0k_vals_ = h0k.Load(int3(id.xy, 0)).rg;
+	float2 h0kConj_vals_ = h0kConj.Load(int3(id.xy, 0)).rg;
+	
+	complex h0k_vals;
+	complex h0kConj_vals;
+	
+	h0k_vals.real = h0k_vals_.x;
+	h0k_vals.imag = h0k_vals_.y;
+	
+	h0kConj_vals.real = h0kConj_vals_.x;
+	h0kConj_vals.imag = h0kConj_vals_.y;
+	
+	complex exp_iwkt;
+	complex exp_iwktConj;
+	
+    exp_iwkt.real = cos( omega * t );
+    exp_iwkt.imag = sin( omega * t );
+	
+    exp_iwktConj.real = exp_iwkt.real;
+    exp_iwktConj.imag = -exp_iwkt.imag;
+
+	complex h0kt_y_ = Add( Mult( h0k_vals, exp_iwkt ), Mult( h0kConj_vals, exp_iwktConj ) );
+
+	complex dx;
+	dx.real = 0.0;
+	dx.imag = -k.x / km;
+	complex h0kt_x_ = Mult( dx, h0kt_y_ );
+
+	complex dy;
+	dy.real = 0.0;
+	dy.imag = -k.y / km;
+	complex h0kt_z_ = Mult (dy, h0kt_y_ );
+
+	complex ikx;
+	ikx.real = 0.0;
+	ikx.imag = -k.x;
+
+	complex ikz;
+	ikz.real = 0.0;
+	ikz.imag = -k.y;
+
+	complex pdyx_ = Mult( ikx, h0kt_y_ );
+	complex pdyz_ = Mult( ikz, h0kt_y_ );
+	complex pdxx_ = Mult( ikx, h0kt_x_ );
+	complex pdzz_ = Mult( ikz, h0kt_z_ );
+	complex pdxz_ = Mult( ikx, h0kt_z_ );
+
+	pdyx[id.xy] = float2( pdyx_.real, pdyx_.imag );
+	pdyz[id.xy] = float2( pdyz_.real, pdyz_.imag );
+	pdxx[id.xy] = float2( pdxx_.real, pdxx_.imag );
+	pdzz[id.xy] = float2( pdzz_.real, pdzz_.imag );
+	pdxz[id.xy] = float2( pdxz_.real, pdxz_.imag );
+
+    h0kt_x[id.xy] = float2( h0kt_x_.real, h0kt_x_.imag );
+    h0kt_y[id.xy] = float2( h0kt_y_.real, h0kt_y_.imag );
+    h0kt_z[id.xy] = float2( h0kt_z_.real, h0kt_z_.imag );
+}

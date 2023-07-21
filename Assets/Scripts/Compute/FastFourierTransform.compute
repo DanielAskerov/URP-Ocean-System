@@ -1,0 +1,154 @@
+#pragma kernel HorizontalFFT
+#pragma kernel VerticalFFT
+#pragma kernel InvPerm
+
+Texture2D<float4> butterflyTexture;
+
+RWTexture2D<float> output;
+RWTexture2D<float2> pingPong0;
+RWTexture2D<float2> pingPong1;
+
+bool pingPong;
+int stage;
+
+struct complex
+{
+    float real;
+    float imag;
+};
+
+complex Mult(complex c0, complex c1)
+{
+    complex c;
+    c.real = c0.real * c1.real - c0.imag * c1.imag;
+    c.imag = c0.real * c1.imag + c0.imag * c1.real;
+    return c;
+}
+
+complex Add(complex c0, complex c1)
+{
+    complex c;
+    c.real = c0.real + c1.real;
+    c.imag = c0.imag + c1.imag;
+    return c;
+}
+
+[numthreads(16,16,1)]
+void HorizontalFFT (uint3 id : SV_DispatchThreadID)
+{
+    complex H;
+
+    if (!pingPong)
+    {
+        float4 data = butterflyTexture.Load(uint3(stage, id.x, 0)).rgba;
+        float2 p_ = pingPong0.Load(uint3(data.z, id.y, 0)).rg;
+        float2 q_ = pingPong0.Load(uint3(data.w, id.y, 0)).rg;
+        
+        complex p;
+        p.real = p_.x;
+        p.imag = p_.y;
+        
+        complex q;
+        q.real = q_.x;
+        q.imag = q_.y;
+        
+        complex w;
+        w.real = data.x;
+        w.imag = data.y;
+
+        H = Add(p, Mult(w, q));
+        
+        pingPong1[id.xy] = float2(H.real, H.imag);
+    }
+    else
+    {
+        float4 data = butterflyTexture.Load(uint3(stage, id.x, 0)).rgba;
+        float2 p_ = pingPong1.Load(uint3(data.z, id.y, 0)).rg;
+        float2 q_ = pingPong1.Load(uint3(data.w, id.y, 0)).rg;
+        
+        complex p;
+        p.real = p_.x;
+        p.imag = p_.y;
+        
+        complex q;
+        q.real = q_.x;
+        q.imag = q_.y;
+        
+        complex w;
+        w.real = data.x;
+        w.imag = data.y;
+
+        H = Add(p, Mult(w, q));
+        
+        pingPong0[id.xy] = float2(H.real, H.imag);
+    }
+}
+
+[numthreads(16,16,1)]
+void VerticalFFT (uint3 id : SV_DispatchThreadID)
+{
+    complex H;
+
+    if (pingPong == 0)
+    {
+        float4 data = butterflyTexture.Load(uint3(stage, id.y, 0)).rgba;
+        float2 p_ = pingPong0.Load(uint3(id.x, data.z, 0)).rg;
+        float2 q_ = pingPong0.Load(uint3(id.x, data.w, 0)).rg;
+        
+        complex p;
+        p.real = p_.x;
+        p.imag = p_.y;
+        
+        complex q;
+        q.real = q_.x;
+        q.imag = q_.y;
+        
+        complex w;
+        w.real = data.x;
+        w.imag = data.y;
+
+        H = Add(p, Mult(w, q));
+        
+        pingPong1[id.xy] = float2(H.real, H.imag);
+    }
+    else
+    {
+        float4 data = butterflyTexture.Load(uint3(stage, id.y, 0)).rgba;
+        float2 p_ = pingPong1.Load(uint3(id.x, data.z, 0)).rg;
+        float2 q_ = pingPong1.Load(uint3(id.x, data.w, 0)).rg;
+        
+        complex p;
+        p.real = p_.x;
+        p.imag = p_.y;
+        
+        complex q;
+        q.real = q_.x;
+        q.imag = q_.y;
+        
+        complex w;
+        w.real = data.x;
+        w.imag = data.y;
+
+        H = Add(p, Mult(w, q));
+        
+        pingPong0[id.xy] = float2(H.real, H.imag);
+    }
+}
+
+[numthreads(16,16,1)]
+void InvPerm (uint3 id : SV_DispatchThreadID)
+{
+    float perms[2] = { 1.0, -1.0 };
+    float perm = perms[ int( ( id.x + id.y ) % 2 ) ];
+
+    if (!pingPong)
+    {
+        float h_ = pingPong0.Load(uint3(id.xy, 0)).r;
+        output[id.xy] = float(perm * h_);
+    }
+    else
+    {
+        float h_ = pingPong1.Load(uint3(id.xy, 0)).r;
+        output[id.xy] = float(perm * h_);
+    }
+}

@@ -1,0 +1,51 @@
+#pragma kernel GenerateButterflyTexture
+
+RWTexture2D<float4> butterflyTexture;
+
+StructuredBuffer<int> bit_reversed;
+
+struct complex {
+    float real;
+    float imag;
+};
+
+int N;
+
+static const float PI = 3.141592653589793;
+
+[numthreads(1,16,1)]
+void GenerateButterflyTexture(uint3 id : SV_DispatchThreadID)
+{
+    float k = id.y * ( N / pow(2, id.x + 1) ) % N;
+
+    complex twiddle;
+    twiddle.real =  cos( 2.0 * PI * k / float(N) );
+    twiddle.imag = sin( 2.0 * PI * k / float(N) );
+
+    int butterflySpan = int( pow( 2, id.x ) );
+
+    int butterflyWing;
+    if ( id.y % pow( 2, id.x + 1 ) < pow( 2, id.x ) ) {
+        butterflyWing = 1;
+    }
+    else {
+        butterflyWing = 0;
+    }
+
+    if (id.x == 0) {
+        if (butterflyWing == 1) {
+            butterflyTexture[id.xy] = float4(twiddle.real, twiddle.imag, bit_reversed[int(id.y)], bit_reversed[int(id.y + 1)]);
+        }
+        else {
+            butterflyTexture[id.xy] = float4(twiddle.real, twiddle.imag, bit_reversed[int(id.y - 1)], bit_reversed[int(id.y)]);
+        }
+    }
+    else {
+        if (butterflyWing == 1) {
+            butterflyTexture[id.xy] = float4(twiddle.real, twiddle.imag, id.y, id.y + butterflySpan);
+        }
+        else {
+            butterflyTexture[id.xy] = float4(twiddle.real, twiddle.imag, id.y - butterflySpan, id.y);
+        }
+    }
+}

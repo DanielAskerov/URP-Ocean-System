@@ -1,0 +1,15 @@
+#pragma kernel MergeTextures
+
+Texture2D<float> tex1;
+Texture2D<float> tex2;
+Texture2D<float> tex3;
+Texture2D<float> tex4;
+
+RWTexture2D<float4> output;
+
+[numthreads(16,16,1)]
+void MergeTextures (uint3 id : SV_DispatchThreadID)
+{
+    // Alpha channel stores partial xz derivative
+    output[id.xy] = float4(tex1[id.xy], tex2[id.xy], tex3[id.xy], tex4[id.xy]);
+}
