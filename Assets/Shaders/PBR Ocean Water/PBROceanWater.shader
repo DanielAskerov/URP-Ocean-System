@@ -17,7 +17,7 @@ Shader "PBROceanWater" {
 
 		[Space(20)]
 		[Toggle(_NORMALMAP)] _NormalMapToggle ("Use Normal Map", Float) = 0
-		[NoScaleOffset] _BumpMap("Normal Map", 2D) = "bump" {}
+		_BumpMap("Normal Map", 2D) = "bump" {}
 		_BumpScale("Bump Scale", Float) = 1
         _NormalStrength("Normal strength", Range(0, 10)) = 1
 
@@ -88,6 +88,7 @@ Shader "PBROceanWater" {
 
 		CBUFFER_START(UnityPerMaterial)
 		float4 _BaseMap_ST;
+		float4 _BumpMap_ST;
 		float4 _BaseColor;
 		float4 _EmissionColor;
 		float4 _SpecColor;
@@ -324,7 +325,7 @@ Shader "PBROceanWater" {
 				// FOAM WIP
 
 				SurfaceData surfaceData;
-				InitializeSurfaceData(IN, surfaceData);
+				InitializeSurfaceData(IN, surfaceData, TRANSFORM_TEX(IN.uv, _BumpMap));
 
 				surfaceData.clearCoatMask = SAMPLE_TEXTURE2D(_ClearCoatMask, sampler_ClearCoatMask, IN.uv.xy).r * _ClearCoatStrength;
 				surfaceData.clearCoatSmoothness = SAMPLE_TEXTURE2D(_ClearCoatSmoothnessMask, sampler_ClearCoatSmoothnessMask, IN.uv.xy).r * _ClearCoatSmoothness;

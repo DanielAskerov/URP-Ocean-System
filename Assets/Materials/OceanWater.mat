@@ -39,8 +39,8 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: 86c6217f95e4f424188d04e0db4c0827, type: 3}
+        m_Scale: {x: 60, y: 60}
         m_Offset: {x: 0, y: 0}
     - _ClearCoatMask:
         m_Texture: {fileID: 0}
@@ -151,7 +151,7 @@ Material:
     - _AlphaClip: 0
     - _AlphaTestToggle: 0
     - _Blend: 0
-    - _BumpScale: 1
+    - _BumpScale: 1.5
     - _CastShadows: 0
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 1
@@ -193,8 +193,8 @@ Material:
     - _SSSDistortion: -2
     - _SSSPower: 1
     - _SSSScale: 1
-    - _SeaFoamStrength: 0.06
-    - _SeaFoamThreshold: 0
+    - _SeaFoamStrength: 10
+    - _SeaFoamThreshold: 0.784
     - _Smoothness: 0
     - _SmoothnessSource: 0
     - _SmoothnessTextureChannel: 0

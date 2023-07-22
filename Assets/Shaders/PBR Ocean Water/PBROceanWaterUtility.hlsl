@@ -54,14 +54,14 @@ half SampleOcclusion(float2 uv) {
 // SurfaceData
 // ---------------------------------------------------------------------------
 
-void InitializeSurfaceData(Varyings IN, out SurfaceData surfaceData){
+void InitializeSurfaceData(Varyings IN, out SurfaceData surfaceData, float2 uvNormal){
 	surfaceData = (SurfaceData)0; // avoids "not completely initalized" errors
 
 	half4 albedoAlpha = SampleAlbedoAlpha(IN.uv, TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap));
 	surfaceData.alpha = Alpha(albedoAlpha.a, _BaseColor, _Cutoff);
 	surfaceData.albedo = albedoAlpha.rgb * _BaseColor.rgb * IN.color.rgb;
 
-	surfaceData.normalTS = SampleNormal(IN.uv, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale);
+	surfaceData.normalTS = SampleNormal(uvNormal, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale);
 	surfaceData.emission = SampleEmission(IN.uv, _EmissionColor.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap));
 	surfaceData.occlusion = SampleOcclusion(IN.uv);
 	
