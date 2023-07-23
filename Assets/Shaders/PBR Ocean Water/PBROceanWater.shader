@@ -57,6 +57,9 @@ Shader "PBROceanWater" {
         _ClearCoatSmoothness("Clear coat smoothness", Range(0, 1)) = 0
 
 		[Space(20)]
+		_DisplacementScale("Displacement scale", float) = 1
+
+		[Space(20)]
 		[HDR] _SSSColor ("Subsurface Scattering Color", Color) = (0,0,0)
 		_SSSDistortion("Subsurface scattering distortion", float) = 1
 		_SSSPower("Subsurface scattering power", float) = 1
@@ -100,6 +103,7 @@ Shader "PBROceanWater" {
 		float _NormalStrength;
 		float _ClearCoatStrength;
 		float _ClearCoatSmoothness;
+		float _DisplacementScale;
 		float4 _SSSColor;
 		float _SSSDistortion;
 		float _SSSPower;
@@ -206,7 +210,7 @@ Shader "PBROceanWater" {
 
 				float3 displacement = _Displacement_1.SampleLevel(sampler_Displacement_1, IN.uv.xy, 0).rgb + 
 									  _Displacement_2.SampleLevel(sampler_Displacement_2, IN.uv.xy, 0).rgb;
-
+				displacement.xz *= _DisplacementScale;
 				IN.positionOS.xyz += mul( unity_WorldToObject, displacement);
 
 				VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS.xyz);
@@ -252,7 +256,7 @@ Shader "PBROceanWater" {
 				// r: yx g: yz b: xx a: zz
 				float4 derivative = _Derivatives_1.Sample(sampler_Derivatives_1, IN.uv.xy).rgba + 
 									_Derivatives_2.Sample(sampler_Derivatives_1, IN.uv.xy).rgba;
-				float2 slope = float2( derivative.r / ( 1.0 + derivative.b ), derivative.g / ( 1.0 + derivative.a ) );
+				float2 slope = float2( derivative.r / ( _DisplacementScale * derivative.b + 1.0 ), derivative.g / ( _DisplacementScale * derivative.a + 1.0) );
 				float3 normal = normalize( float3( -slope.x, 1.0, -slope.y ) ) * _NormalStrength;
 				IN.normalWS.xyz = normal;
 
@@ -267,7 +271,7 @@ Shader "PBROceanWater" {
 				float3 emissivity = 0;
 
 				// jacobian determinant
-				float jacobian = ( ( derivative.b + 1.0 ) * ( derivative.a + 1.0 ) ) - ( pdxz_y.x  * pdxz_y.x );
+				float jacobian = ( ( _DisplacementScale * derivative.b + 1.0 ) * ( _DisplacementScale * derivative.a + 1.0 ) ) - ( _DisplacementScale * pdxz_y.x  * _DisplacementScale * pdxz_y.x );
 
 				// sea foam
 				float2 seaFoamUV = TRANSFORM_TEX(IN.uv.xy, _SeaFoam);
