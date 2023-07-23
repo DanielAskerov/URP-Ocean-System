@@ -48,7 +48,7 @@ Shader "PBROceanWater" {
 		[NoScaleOffset] _SeaFoamNormalMap("Sea foam Normal Map", 2D) = "bump" {}
 		[NoScaleOffset] _SeaFoamRoughnessMap("Sea foam Roughness Map", 2D) = "black" {}
 		[NoScaleOffset] _SeaFoamThreshold("Sea Foam Threshold", Range(0, 1)) = 0.5
-		[NoScaleOffset] _SeaFoamStrength("Sea foam strength", Range(0, 10)) = 1
+		[NoScaleOffset] _SeaFoamStrength("Sea foam strength", Range(0, 100)) = 1
 
 		[Space(20)]
         [NoScaleOffset] _ClearCoatMask("Clear coat mask", 2D) = "white" {}
@@ -283,8 +283,8 @@ Shader "PBROceanWater" {
 				half3 viewDirWS = half3(IN.normalWS.w, IN.tangentWS.w, IN.bitangentWS.w); // viewDir has been stored in w components of these in vertex shader
 				float3 seaFoamNormalWS = TransformTangentToWorld(seaFoamNormalTS, half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz));
 
-				IN.color.rgb	+= jacobian < _SeaFoamThreshold ? lerp( seaFoamColor, 0, jacobian * _SeaFoamStrength ) : IN.color.rgb;
-				IN.normalWS.rgb += jacobian < _SeaFoamThreshold ? lerp( seaFoamNormalWS, 0, jacobian * _SeaFoamStrength ) : IN.normalWS;
+				IN.color.rgb    += saturate(_SeaFoamThreshold - jacobian) * seaFoamColor    * _SeaFoamStrength* _SeaFoamStrength;
+				IN.normalWS.rgb += saturate(_SeaFoamThreshold - jacobian) * seaFoamNormalWS * _SeaFoamStrength* _SeaFoamStrength;
 				//roughness	 += jacobian < _SeaFoamThreshold ? lerp( seaFoamRoughness * _SeaFoamStrength, 0, saturate( jacobian ) ) * _SeaFoamStrength : 0;
 				
 				// subsurface scattering approximation; utilizing Y displacement as a "thickness" map
