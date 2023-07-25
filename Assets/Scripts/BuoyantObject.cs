@@ -5,10 +5,11 @@ using UnityEngine;
 public class BuoyantObject : MonoBehaviour
 {
     [SerializeField] float buoyantForce;
+    [SerializeField] float underwaterDrag;
+    [SerializeField] float windSpeed;
 
     Texture2D displacementTex;
     Rigidbody rb;
-    Vector3 displacement;
     
     float drag;
     int tileSize;
@@ -30,22 +31,31 @@ public class BuoyantObject : MonoBehaviour
 
     void FixedUpdate() {
 
-        int x =  WorldToTextureCoords( transform.position.x );
-        int y =  WorldToTextureCoords( transform.position.z );
-
-        displacement = GetDisplacementVector( x, y );
-
-        if ( transform.position.y <= displacement.y )
+        for (int i=0; i<transform.childCount; i++)
         {
-            Vector3 f =  new Vector3 ( displacement.x * buoyantForce,
-                                     ( displacement.y - transform.position.y ) * buoyantForce * gravity,
-                                       displacement.z * buoyantForce );
-            rb.drag = 1f;
-            rb.AddForce( f, ForceMode.Acceleration );
-        }
-        else
-        {
-            rb.drag = drag;
+            Transform floatPoint = transform.GetChild( i );
+
+            int x = WorldToTextureCoords( floatPoint.position.x );
+            int y = WorldToTextureCoords( floatPoint.position.z );
+
+            Vector3 displacement = GetDisplacementVector( x, y );
+
+            if ( transform.position.y <= displacement.y )
+            {
+                Vector3 f = new Vector3( displacement.x * buoyantForce,
+                                       ( displacement.y - floatPoint.position.y ) * buoyantForce * gravity,
+                                         displacement.z * buoyantForce );
+
+                f.x += OceanDisplacementData.windDirection.x * windSpeed;
+                f.z += OceanDisplacementData.windDirection.y * windSpeed;
+
+                rb.drag = underwaterDrag;
+                rb.AddForceAtPosition( f, floatPoint.position, ForceMode.Acceleration );
+            }
+            else
+            {
+                rb.drag = drag;
+            }
         }
     }
 

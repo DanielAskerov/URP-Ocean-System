@@ -38,6 +38,7 @@ public class GenerateOcean : MonoBehaviour
     void Awake()
     {
         OceanDisplacementData.FFTSize = size;
+        OceanDisplacementData.windDirection = windDirection.normalized;
 
         PrecomputeTextures.size = size;
         noise = PrecomputeTextures.GenerateGaussianNoiseTexture();
@@ -81,9 +82,10 @@ public class GenerateOcean : MonoBehaviour
             OT1.TileInitialSpectrum();
             OT2.TileInitialSpectrum();
         }
-        OceanDisplacementData.displacementData = OT1.displacement;
         OT1.UpdateTile();
         OT2.UpdateTile();
+
+        OceanDisplacementData.displacementData = OT1.displacement;
     }
 
     void SetTileParams()
@@ -109,5 +111,7 @@ public class GenerateOcean : MonoBehaviour
         OT2.smallWaveFactor = smallWaveFactor;
         OT2.windSpeed = windSpeed;
         OT2.windDirection = windDirection;
+
+        OceanDisplacementData.windDirection = windDirection.normalized;
     }
 }
