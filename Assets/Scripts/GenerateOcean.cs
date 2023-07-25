@@ -7,6 +7,7 @@ public class GenerateOcean : MonoBehaviour
     [SerializeField] int L2 = 0;
 
     [Header("Wave Settings")]
+    [SerializeField] bool recalculateSpectrum = false;
     [SerializeField] int size = 0;
     [SerializeField] float timeScale = 1;
     [SerializeField] float windSpeed = 0f;
@@ -72,15 +73,14 @@ public class GenerateOcean : MonoBehaviour
         water.SetTexture("_Derivatives_2", OT2.derivatives, UnityEngine.Rendering.RenderTextureSubElement.Color);
     }
 
-    void OnValidate()
-    {
-        SetTileParams();
-        OT1.TileInitialSpectrum();
-        OT2.TileInitialSpectrum();
-    }
-
     void FixedUpdate()
     {
+        if ( recalculateSpectrum )
+        {
+            SetTileParams();
+            OT1.TileInitialSpectrum();
+            OT2.TileInitialSpectrum();
+        }
         OceanDisplacementData.displacementData = OT1.displacement;
         OT1.UpdateTile();
         OT2.UpdateTile();
