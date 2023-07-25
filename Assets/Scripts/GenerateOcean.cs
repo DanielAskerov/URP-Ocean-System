@@ -36,6 +36,8 @@ public class GenerateOcean : MonoBehaviour
 
     void Awake()
     {
+        OceanDisplacementData.FFTSize = size;
+
         PrecomputeTextures.size = size;
         noise = PrecomputeTextures.GenerateGaussianNoiseTexture();
         butterfly = PrecomputeTextures.GenerateButterflyTexture(generateButterflyTex);
@@ -79,6 +81,7 @@ public class GenerateOcean : MonoBehaviour
 
     void FixedUpdate()
     {
+        OceanDisplacementData.displacementData = OT1.displacement;
         OT1.UpdateTile();
         OT2.UpdateTile();
     }

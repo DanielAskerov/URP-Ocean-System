@@ -2,20 +2,21 @@ using UnityEngine;
 
 public class GenerateGrid : MonoBehaviour
 {
-    [SerializeField] int size;
+    [SerializeField] int tileSize;
     [SerializeField] GameObject tile;
     [SerializeField] GameObject ocean;
 
-    void Start()
+    void Awake()
     {
-        //int bound = (int)Mathf.Ceil(size / 2f ) + size % 2;
-        for ( int z=0; z < size; z++ )
+        OceanDisplacementData.tileSize = tileSize;
+
+        for ( int z=0; z < tileSize; z++ )
         {
-            for (int x=0; x < size; x++)
+            for (int x=0; x < tileSize; x++)
             {
-                Instantiate(tile, new Vector3( ( -size * tile.transform.localScale.x + tile.transform.localScale.x) + ( x * tile.transform.localScale.x * 2 ), 
+                Instantiate(tile, new Vector3( ( -tileSize * tile.transform.localScale.x + tile.transform.localScale.x) + ( x * tile.transform.localScale.x * 2 ), 
                                                0,
-                                               ( -size * tile.transform.localScale.z + tile.transform.localScale.z) + ( z * tile.transform.localScale.z * 2 )), 
+                                               ( -tileSize * tile.transform.localScale.z + tile.transform.localScale.z) + ( z * tile.transform.localScale.z * 2 )), 
                                                tile.transform.rotation, ocean.transform );
             }
         }
