@@ -115,15 +115,15 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SeaFoam:
-        m_Texture: {fileID: 2800000, guid: 4d0950b30972c1d40a7d43daa4743715, type: 3}
-        m_Scale: {x: 3, y: 3}
+        m_Texture: {fileID: 2800000, guid: ddbb84ddf1423e84fbea74117b1369a5, type: 3}
+        m_Scale: {x: 10, y: 10}
         m_Offset: {x: 0, y: 0}
     - _SeaFoamNormalMap:
-        m_Texture: {fileID: 2800000, guid: baae3ce2069ed904aac7655759fe1e24, type: 3}
+        m_Texture: {fileID: 2800000, guid: d482bb6ec646dc946971d97b45b6b89c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SeaFoamRoughnessMap:
-        m_Texture: {fileID: 2800000, guid: c596df4f76044cb48886d5958ace4cba, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
@@ -160,7 +160,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DisplacementScale: 1.5
+    - _DisplacementScale: 1.34
     - _DstBlend: 0
     - _EdgeFoamFactor: 2.4
     - _EdgeFoamStrength: 17.6
@@ -187,14 +187,14 @@ Material:
     - _PeakColorThreshold: 10
     - _QueueOffset: 0
     - _ReceiveShadows: 0
-    - _RefractionStrength: 1.2
+    - _RefractionStrength: 1
     - _SSSAmbient: 0.1
-    - _SSSAttenuation: 1
-    - _SSSDistortion: -1
-    - _SSSPower: 1
-    - _SSSScale: 1.1
-    - _SeaFoamStrength: 11.3
-    - _SeaFoamThreshold: 0.838
+    - _SSSAttenuation: 0.5
+    - _SSSDistortion: -0.5
+    - _SSSPower: 0.1
+    - _SSSScale: 1
+    - _SeaFoamStrength: 3.5
+    - _SeaFoamThreshold: 0.814
     - _Smoothness: 0
     - _SmoothnessSource: 0
     - _SmoothnessTextureChannel: 0
@@ -215,12 +215,12 @@ Material:
     - _ZWrite: 1
     - _vertNormalStrength: 10
     m_Colors:
-    - _BaseColor: {r: 0.23495907, g: 0.3018868, b: 0.27585936, a: 1}
+    - _BaseColor: {r: 0.252047, g: 0.3018868, b: 0.28136453, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FresnelColor: {r: 0, g: 0, b: 0, a: 1}
-    - _SSSColor: {r: 0, g: 0.4245283, b: 0.21226415, a: 1}
+    - _SSSColor: {r: 0, g: 0.20754719, b: 0.103773594, a: 1}
     - _SecondaryFoamColor: {r: 0.000667496, g: 0.047169805, b: 0.033845607, a: 1}
     - _SpecColor: {r: 0, g: 0, b: 0, a: 1}
-    - _WaterFogColor: {r: 0.17835529, g: 0.20238519, b: 0.2264151, a: 1}
+    - _WaterFogColor: {r: 0.1767088, g: 0.17807461, b: 0.1792453, a: 1}
   m_BuildTextureStacks: []
