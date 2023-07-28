@@ -131,8 +131,8 @@ Shader "PBROceanWater" {
 			Name "ForwardLit"
 			Tags { "LightMode"="UniversalForward" }
 			Blend SrcAlpha OneMinusSrcAlpha
-			ZWrite Off
-			cull Off
+			ZWrite On
+			cull Back
 
 			HLSLPROGRAM
 			#pragma vertex LitPassVertex
