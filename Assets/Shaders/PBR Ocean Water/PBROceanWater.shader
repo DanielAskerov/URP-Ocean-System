@@ -256,13 +256,15 @@ Shader "PBROceanWater" {
 				float viewDist = length( IN.viewDir );
 				float normalizedDistInv = 1 - saturate( ( 1 / _ProjectionParams.z * _DetailFogScale ) * viewDist );
 				float normalizedDist = saturate( ( 1 / _ProjectionParams.z * _FogScale ) * viewDist );
+				float normalizedDistSq = normalizedDist * normalizedDist;
 
 				// r: yx g: yz b: xx a: zz
 				float4 derivative = _Derivatives_1.Sample(sampler_Derivatives_1, IN.uv.xy).rgba + 
 									_Derivatives_2.Sample(sampler_Derivatives_1, IN.uv.xy).rgba;
 				float2 slope = float2( derivative.r / ( _DisplacementScale * derivative.b + 1.0 ), derivative.g / ( _DisplacementScale * derivative.a + 1.0) );
 				float3 normal = normalize( float3( -slope.x, 1.0, -slope.y ) ) * _NormalStrength;
-				IN.normalWS.xyz = normal * normalizedDistInv;
+				IN.normalWS.xyz = normal;
+				IN.normalWS.xz *= normalizedDistInv;
 
 				float3 tangent = cross( normal, float3(1,0,0) );
 				if ( length(tangent) == 0)
@@ -336,7 +338,7 @@ Shader "PBROceanWater" {
 				InitializeSurfaceData(IN, surfaceData, TRANSFORM_TEX(IN.uv, _BumpMap));
 
 				surfaceData.clearCoatMask = SAMPLE_TEXTURE2D(_ClearCoatMask, sampler_ClearCoatMask, IN.uv.xy).r * _ClearCoatStrength ;
-				surfaceData.clearCoatSmoothness = SAMPLE_TEXTURE2D(_ClearCoatSmoothnessMask, sampler_ClearCoatSmoothnessMask, IN.uv.xy).r * _ClearCoatSmoothness * normalizedDistInv;
+				surfaceData.clearCoatSmoothness = SAMPLE_TEXTURE2D(_ClearCoatSmoothnessMask, sampler_ClearCoatSmoothnessMask, IN.uv.xy).r * _ClearCoatSmoothness * normalizedDistSq;
 				surfaceData.emission += emissivity;
 
 
@@ -354,7 +356,7 @@ Shader "PBROceanWater" {
 				half4 color = UniversalFragmentPBR(inputData, surfaceData);
 
 				// FOG
-				color.rgb += _FogColor * normalizedDist * normalizedDist;
+				color.rgb += _FogColor * normalizedDistSq;
 
 				color.a = 1;
 
