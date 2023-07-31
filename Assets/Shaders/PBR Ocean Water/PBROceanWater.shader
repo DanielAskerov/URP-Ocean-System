@@ -58,6 +58,10 @@ Shader "PBROceanWater" {
 
 		[Space(20)]
 		_DisplacementScale("Displacement scale", float) = 1
+		_DisplacementFog("Displacement fog", range(0,100)) = 1
+		_FogColor("Fog color", Color) = (1,1,1)
+		_FogScale("Fog Scale", float) = 1
+		_DetailFogScale("Detail fog scale", float) = 0
 
 		[Space(20)]
 		[HDR] _SSSColor ("Subsurface Scattering Color", Color) = (0,0,0)
@@ -68,7 +72,7 @@ Shader "PBROceanWater" {
 		_SSSAmbient("Subsurface scattering ambient", float) = 1
 
 		[Space(20)]
-		_WaterFogColor ("Water Fog Color", Color) = (0, 0, 0)
+		_WaterFogColor ("Underwater Fog Color", Color) = (0, 0, 0)
 		_WaterFogDensity ("Water Fog Density", float) = 0
 		_EdgeFoamFactor ("Edge Foam Factor", float) = 0
 		_EdgeFoamStrength ("Edge Foam Strength", float) = 0
@@ -76,7 +80,6 @@ Shader "PBROceanWater" {
 		_EdgeOutlineStrength ("Edge Outline Strength", float) = 0
 		_RefractionStrength ("Refraction Strength", float) = 0
 		_Translucency ("Translucency", float) = 0
-		_Test("Test", float) = 0
 	}
 	SubShader {
 		Tags {
@@ -104,6 +107,10 @@ Shader "PBROceanWater" {
 		float _ClearCoatStrength;
 		float _ClearCoatSmoothness;
 		float _DisplacementScale;
+		float _DisplacementFog;
+		float4 _FogColor;
+		float _FogScale;
+		float _DetailFogScale;
 		float4 _SSSColor;
 		float _SSSDistortion;
 		float _SSSPower;
@@ -121,7 +128,7 @@ Shader "PBROceanWater" {
 		float _SeaFoamStrength;
 		float _RefractionStrength;
 		float _Translucency;
-		float _Test;
+		
 
 		float4 _CameraDepthTexture_TexelSize;
 		CBUFFER_END
@@ -199,7 +206,7 @@ Shader "PBROceanWater" {
 					float4 shadowCoord 				: TEXCOORD7;
 				#endif
 					float4 screenPos				: TEXCOORD8;
-
+				half3 viewDir						: TEXCOORD9;
 				float4 color						: COLOR;
 			};
 
@@ -207,11 +214,13 @@ Shader "PBROceanWater" {
 
 			Varyings LitPassVertex(Attributes IN) {
 				Varyings OUT;
+				
+				float normalizedDistInv = 1 - saturate( ( 1 / _ProjectionParams.z * _DisplacementFog ) * length( GetWorldSpaceViewDir(  mul( unity_ObjectToWorld, IN.positionOS ) ) ) );
 
 				float3 displacement = _Displacement_1.SampleLevel(sampler_Displacement_1, IN.uv.xy, 0).rgb + 
 									  _Displacement_2.SampleLevel(sampler_Displacement_2, IN.uv.xy, 0).rgb;
 				displacement.xz *= _DisplacementScale;
-				IN.positionOS.xyz += mul( unity_WorldToObject, displacement);
+				IN.positionOS.xyz += mul( unity_ObjectToWorld, float4(displacement, 1.0)).xyz * normalizedDistInv;
 
 				VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS.xyz);
 
@@ -246,6 +255,7 @@ Shader "PBROceanWater" {
 					OUT.shadowCoord = GetShadowCoord(positionInputs);
 				#endif
 
+				OUT.viewDir = viewDirWS;
 				OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
 				OUT.color = IN.color;
 				return OUT;
@@ -253,12 +263,16 @@ Shader "PBROceanWater" {
 			
 			half4 LitPassFragment(Varyings IN) : SV_Target {
 
+				float viewDist = length( IN.viewDir );
+				float normalizedDistInv = 1 - saturate( ( 1 / _ProjectionParams.z * _DetailFogScale ) * viewDist );
+				float normalizedDist = saturate( ( 1 / _ProjectionParams.z * _FogScale ) * viewDist );
+
 				// r: yx g: yz b: xx a: zz
 				float4 derivative = _Derivatives_1.Sample(sampler_Derivatives_1, IN.uv.xy).rgba + 
 									_Derivatives_2.Sample(sampler_Derivatives_1, IN.uv.xy).rgba;
 				float2 slope = float2( derivative.r / ( _DisplacementScale * derivative.b + 1.0 ), derivative.g / ( _DisplacementScale * derivative.a + 1.0) );
 				float3 normal = normalize( float3( -slope.x, 1.0, -slope.y ) ) * _NormalStrength;
-				IN.normalWS.xyz = normal;
+				IN.normalWS.xyz = normal * normalizedDistInv;
 
 				float3 tangent = cross( normal, float3(1,0,0) );
 				if ( length(tangent) == 0)
@@ -283,7 +297,7 @@ Shader "PBROceanWater" {
 				half3 viewDirWS = half3(IN.normalWS.w, IN.tangentWS.w, IN.bitangentWS.w); // viewDir has been stored in w components of these in vertex shader
 				float3 seaFoamNormalWS = TransformTangentToWorld(seaFoamNormalTS, half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz));
 
-				IN.color.rgb    += saturate(_SeaFoamThreshold - jacobian) * seaFoamColor    * _SeaFoamStrength* _SeaFoamStrength;
+				IN.color.rgb    += saturate(_SeaFoamThreshold - jacobian) * seaFoamColor    * _SeaFoamStrength* _SeaFoamStrength * normalizedDistInv;
 				IN.normalWS.rgb += saturate(_SeaFoamThreshold - jacobian) * seaFoamNormalWS * _SeaFoamStrength* _SeaFoamStrength;
 				//roughness	 += jacobian < _SeaFoamThreshold ? lerp( seaFoamRoughness * _SeaFoamStrength, 0, saturate( jacobian ) ) * _SeaFoamStrength : 0;
 				
@@ -331,9 +345,12 @@ Shader "PBROceanWater" {
 				SurfaceData surfaceData;
 				InitializeSurfaceData(IN, surfaceData, TRANSFORM_TEX(IN.uv, _BumpMap));
 
-				surfaceData.clearCoatMask = SAMPLE_TEXTURE2D(_ClearCoatMask, sampler_ClearCoatMask, IN.uv.xy).r * _ClearCoatStrength;
-				surfaceData.clearCoatSmoothness = SAMPLE_TEXTURE2D(_ClearCoatSmoothnessMask, sampler_ClearCoatSmoothnessMask, IN.uv.xy).r * _ClearCoatSmoothness;
+				surfaceData.clearCoatMask = SAMPLE_TEXTURE2D(_ClearCoatMask, sampler_ClearCoatMask, IN.uv.xy).r * _ClearCoatStrength ;
+				surfaceData.clearCoatSmoothness = SAMPLE_TEXTURE2D(_ClearCoatSmoothnessMask, sampler_ClearCoatSmoothnessMask, IN.uv.xy).r * _ClearCoatSmoothness * normalizedDistInv;
 				surfaceData.emission += emissivity;
+
+
+
 				// WIP
 				//#if _SPECULAR_SETUP
 				//	surfaceData.specular = 0;
@@ -345,6 +362,9 @@ Shader "PBROceanWater" {
 				InputData inputData;
 				InitializeInputData(IN, surfaceData.normalTS, inputData);
 				half4 color = UniversalFragmentPBR(inputData, surfaceData);
+
+				// FOG
+				color.rgb += _FogColor * normalizedDist * normalizedDist;
 
 				color.a = 1;
 
