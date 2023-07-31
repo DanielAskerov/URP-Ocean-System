@@ -171,7 +171,6 @@ Shader "PBROceanWater" {
 
 			#pragma multi_compile _ LIGHTMAP_ON
 			#pragma multi_compile _ DIRLIGHTMAP_COMBINED
-			#pragma multi_compile_fog
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -196,11 +195,7 @@ Shader "PBROceanWater" {
 				half4 tangentWS					: TEXCOORD4;    // xyz: tangent, w: viewDir.y
 				half4 bitangentWS				: TEXCOORD5;    // xyz: bitangent, w: viewDir.z
 				
-				#ifdef _ADDITIONAL_LIGHTS_VERTEX
-					half4 fogFactorAndVertexLight	: TEXCOORD6; // x: fogFactor, yzw: vertex light
-				#else
-					half  fogFactor					: TEXCOORD6;
-				#endif
+				half4 fogFactorAndVertexLight	: TEXCOORD6; // x: fogFactor, yzw: vertex light
 
 				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
 					float4 shadowCoord 				: TEXCOORD7;
@@ -236,7 +231,6 @@ Shader "PBROceanWater" {
 
 				half3 viewDirWS = GetWorldSpaceViewDir(positionInputs.positionWS);
 				half3 vertexLight = VertexLighting(positionInputs.positionWS, normalInputs.normalWS);
-				half fogFactor = ComputeFogFactor(positionInputs.positionCS.z);
 				
 				OUT.normalWS = half4(normalInputs.normalWS, viewDirWS.x);
 				OUT.tangentWS = half4(normalInputs.tangentWS, viewDirWS.y);
@@ -245,11 +239,7 @@ Shader "PBROceanWater" {
 				OUTPUT_LIGHTMAP_UV(IN.lightmapUV, unity_LightmapST, OUT.lightmapUV);
 				OUTPUT_SH(OUT.normalWS.xyz, OUT.vertexSH);
 
-				#ifdef _ADDITIONAL_LIGHTS_VERTEX
-					OUT.fogFactorAndVertexLight = half4(fogFactor, vertexLight);
-				#else
-					OUT.fogFactor = fogFactor;
-				#endif
+				OUT.fogFactorAndVertexLight = half4(0, vertexLight);
 
 				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
 					OUT.shadowCoord = GetShadowCoord(positionInputs);
@@ -368,7 +358,6 @@ Shader "PBROceanWater" {
 
 				color.a = 1;
 
-				color.rgb = MixFog(color.rgb, inputData.fogCoord);
 				return color;
 			}
 			ENDHLSL
